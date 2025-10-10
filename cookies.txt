@@ -1,100 +1,15 @@
-[
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1791619631.890147,
-    "hostOnly": false,
-    "httpOnly": true,
-    "name": "__Secure-1PSIDTS",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "sidts-CjQBmkD5S5y4dP14cWbI8ojAksTmYgBNTGfppbFgFF_9uXIP8wUlyfvVGYGGCQPmIcilxU0GEAA",
-    "id": 1
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1794615939.031749,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "__Secure-3PAPISID",
-    "path": "/",
-    "sameSite": "no_restriction",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "P_ukRUVBJUy3yYT7/A8WIalyRcXNE0F6MN",
-    "id": 2
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1794615939.031783,
-    "hostOnly": false,
-    "httpOnly": true,
-    "name": "__Secure-3PSID",
-    "path": "/",
-    "sameSite": "no_restriction",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "g.a0002Qi9Hg67Eua39kuej1gJPXfrYjQ86LYABcKXU7j8_xue84oUiG8cVOzvcpz9nwU0-uiT9AACgYKATkSARASFQHGX2MiZJEyJ3Oogigzdt6IAl91nxoVAUF8yKp1j8gWn6fCiTCh63R1cjja0076",
-    "id": 3
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1791619631.89037,
-    "hostOnly": false,
-    "httpOnly": true,
-    "name": "__Secure-3PSIDCC",
-    "path": "/",
-    "sameSite": "no_restriction",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "AKEyXzVULJhcaVJAJ38momKgsyG-pxPMOPymStsnQwDTkcPjx4rNoWhQ5N_SVCfzWVAkozxdHA",
-    "id": 4
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1791619631.890306,
-    "hostOnly": false,
-    "httpOnly": true,
-    "name": "__Secure-3PSIDTS",
-    "path": "/",
-    "sameSite": "no_restriction",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "sidts-CjQBmkD5S5y4dP14cWbI8ojAksTmYgBNTGfppbFgFF_9uXIP8wUlyfvVGYGGCQPmIcilxU0GEAA",
-    "id": 5
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1794615939.224197,
-    "hostOnly": false,
-    "httpOnly": true,
-    "name": "LOGIN_INFO",
-    "path": "/",
-    "sameSite": "no_restriction",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "AFmmF2swRQIgWFWD0A1ZbXgjTvdyVBOBoYdM_WRj2gS1oiA49RWZC7sCIQDNPSdRiOyniG8a4oZ9HuguJnCXXMm9ZlZm_IjGgWaahA:QUQ3MjNmeVNzdnQyNFdPRktmZ0JVNkpvSnc3bGVMYmM5WUdWclNSOU9uXy1ZR1k0cjZxV1hXdmw4aFV5ZkU0NXA5d2lVY296WkM1Tm11TGZ4U3U5TW5pb2xUcXVsUGYwaFl4S3llUWl1NmRib3lzTllFRUU3amlUbEFLakMyclB5eGFwRjBDYzlrLU52Sll1S0lSUlhiTVZqSHNUdWt0cUVn",
-    "id": 6
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1794641787.244892,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "PREF",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "tz=Asia.Shanghai&f7=100",
-    "id": 7
-}
-]
+# Netscape HTTP Cookie File
+# https://curl.haxx.se/rfc/cookie_spec.html
+# This is a generated file! Do not edit.
+
+.youtube.com	TRUE	/	TRUE	1794615939	__Secure-3PAPISID	P_ukRUVBJUy3yYT7/A8WIalyRcXNE0F6MN
+.youtube.com	TRUE	/	TRUE	1794615939	__Secure-3PSID	g.a0002Qi9Hg67Eua39kuej1gJPXfrYjQ86LYABcKXU7j8_xue84oUiG8cVOzvcpz9nwU0-uiT9AACgYKATkSARASFQHGX2MiZJEyJ3Oogigzdt6IAl91nxoVAUF8yKp1j8gWn6fCiTCh63R1cjja0076
+.youtube.com	TRUE	/	TRUE	1794615939	LOGIN_INFO	AFmmF2swRQIgWFWD0A1ZbXgjTvdyVBOBoYdM_WRj2gS1oiA49RWZC7sCIQDNPSdRiOyniG8a4oZ9HuguJnCXXMm9ZlZm_IjGgWaahA:QUQ3MjNmeVNzdnQyNFdPRktmZ0JVNkpvSnc3bGVMYmM5WUdWclNSOU9uXy1ZR1k0cjZxV1hXdmw4aFV5ZkU0NXA5d2lVY296WkM1Tm11TGZ4U3U5TW5pb2xUcXVsUGYwaFl4S3llUWl1NmRib3lzTllFRUU3amlUbEFLakMyclB5eGFwRjBDYzlrLU52Sll1S0lSUlhiTVZqSHNUdWt0cUVn
+.youtube.com	TRUE	/	TRUE	1794641787	PREF	tz=Asia.Shanghai&f7=100
+.youtube.com	TRUE	/	TRUE	1791620234	__Secure-1PSIDTS	sidts-CjQBmkD5S2sE8_FcZe9niZ3LcbNmbGOt2ENhtUX49oPaoRx1dMdxvR1QoOoE40rmmkccpCQ_EAA
+.youtube.com	TRUE	/	TRUE	1791620234	__Secure-3PSIDTS	sidts-CjQBmkD5S2sE8_FcZe9niZ3LcbNmbGOt2ENhtUX49oPaoRx1dMdxvR1QoOoE40rmmkccpCQ_EAA
+.youtube.com	TRUE	/	TRUE	1791620234	__Secure-3PSIDCC	AKEyXzU3gXxVI38pIARO8xIMW22oKl-JtS5rJUEH-nerzbq9KdjYUzutea9hyMEgDI0GOaCa7A
+.youtube.com	TRUE	/	TRUE	0	YSC	sLsvwe7kgKk
+.youtube.com	TRUE	/	TRUE	1775633784	VISITOR_INFO1_LIVE	SsldS9QqmRo
+.youtube.com	TRUE	/	TRUE	1775633784	VISITOR_PRIVACY_METADATA	CgJDThIEGgAgPA%3D%3D
+.youtube.com	TRUE	/	TRUE	1775607939	__Secure-ROLLOUT_TOKEN	CLawoJKpgZWEuAEQ_oDDp6-YkAMYgM3bqK-YkAM%3D
