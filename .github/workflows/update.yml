@@ -1,38 +1,32 @@
-name: Update YouTube IPTV List
+name: Update YouTube IPTV Playlist
 
 on:
   schedule:
-    - cron: '0 */6 * * *'   # 每6小时运行一次 (UTC时间)
-  workflow_dispatch:          # 允许手动触发
-
-permissions:
-  contents: write             # 给 workflow 写入仓库的权限
+    - cron: '0 8 * * *'   # 每天早上8点自动运行
+  workflow_dispatch:       # 允许手动触发
 
 jobs:
-  update:
+  update_playlist:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.x'
 
-      - name: Install yt-dlp
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install --upgrade yt-dlp
+      - name: Install dependencies
+        run: pip install yt-dlp
 
-      - name: Generate playlist
-        run: python3 generate_m3u.py
+      - name: Generate M3U playlist
+        run: python generate_m3u.py
 
-      - name: Commit and push updated file
+      - name: Commit and push changes
         uses: EndBug/add-and-commit@v9
         with:
           author_name: github-actions
-          author_email: actions@github.com
-          message: "Auto update YouTube IPTV playlist - ${{ github.run_id }}"
-          add: "youtube_live.m3u"
+          author_email: github-actions@github.com
+          message: "Auto update IPTV playlist {{timestamp}}"
