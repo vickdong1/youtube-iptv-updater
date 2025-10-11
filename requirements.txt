@@ -1,1 +1,1 @@
-yt-dlp
+pip install -U yt-dlp browser-cookie3
