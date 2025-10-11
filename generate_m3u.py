@@ -1,63 +1,73 @@
+import os
 import subprocess
 import datetime
 
+# 文件路径
 CHANNELS_FILE = "channels.txt"
 OUTPUT_FILE = "youtube_live.m3u"
-COOKIES_FILE = "cookies.txt"  # 必须在同目录下
+COOKIES_FILE = "cookies.txt"
 
-def get_m3u8_url(youtube_url):
+def log(msg):
+    print(msg, flush=True)
+
+def refresh_cookies():
     """
-    使用 yt-dlp 获取直播 m3u8 地址，传入 cookies
+    从浏览器（Chrome）提取 cookies 并保存成 cookies.txt
+    """
+    log("🍪 正在从浏览器提取 YouTube 登录 cookie ...")
+    try:
+        subprocess.run(
+            ["yt-dlp", "--cookies-from-browser", "chrome", "--write-cookies", COOKIES_FILE, "--skip-download", "https://www.youtube.com"],
+            check=True
+        )
+        log("✅ cookie 已更新: cookies.txt")
+    except subprocess.CalledProcessError:
+        log("⚠️ 提取 cookie 失败，请确认浏览器已登录 YouTube")
+
+def get_stream_url(video_url):
+    """
+    获取 YouTube 直播流地址
     """
     try:
         result = subprocess.run(
-            ["yt-dlp", "--cookies", COOKIES_FILE, "-g", youtube_url],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
+            ["yt-dlp", "-g", "--cookies", COOKIES_FILE, video_url],
+            capture_output=True,
+            text=True,
+            check=True
         )
-        if result.returncode != 0:
-            print(f"❌ 获取失败: {youtube_url}\n{result.stderr.strip()}")
-            return None
-        url = result.stdout.strip().split("\n")[0]
-        return url
-    except Exception as e:
-        print(f"❌ 获取异常: {youtube_url} ({e})")
+        return result.stdout.strip()
+    except subprocess.CalledProcessError:
+        log(f"❌ 获取失败: {video_url}")
         return None
 
-def read_channels():
-    """
-    读取 channels.txt，每行格式:
-    YouTube链接   # 频道名称
-    """
-    channels = []
+def main():
+    # 刷新 cookie
+    refresh_cookies()
+
+    log("\n📺 正在生成最新的 YouTube IPTV 播放列表...\n")
+
+    m3u_lines = ["#EXTM3U"]
     with open(CHANNELS_FILE, "r", encoding="utf-8") as f:
         for line in f:
-            line = line.strip()
-            if not line or line.startswith("#"):
+            if not line.strip() or line.strip().startswith("#"):
                 continue
-            if "#" in line:
-                url, name = line.split("#", 1)
-                url = url.strip()
-                name = name.strip()
-                channels.append((url, name))
-    return channels
+            url, *name = line.split("#", 1)
+            name = name[0].strip() if name else "未命名频道"
+            url = url.strip()
 
-def generate_m3u():
-    channels = read_channels()
-    m3u_lines = ["#EXTM3U"]
-    for url, name in channels:
-        print(f"▶ 正在获取：{name}")
-        m3u8_url = get_m3u8_url(url)
-        if m3u8_url:
-            m3u_lines.append(f'#EXTINF:-1,{name}')
-            m3u_lines.append(m3u8_url)
-        else:
-            print(f"❌ {name} 获取失败")
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write("\n".join(m3u_lines))
-    print(f"✅ 已生成最新 {OUTPUT_FILE} ({timestamp})")
+            log(f"▶ 正在获取：{name}")
+            stream_url = get_stream_url(url)
+            if stream_url:
+                m3u_lines.append(f'#EXTINF:-1 group-title="YouTube直播",{name}')
+                m3u_lines.append(stream_url)
+                log(f"✅ {name} 成功获取\n")
+            else:
+                log(f"❌ {name} 获取失败\n")
+
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as out:
+        out.write("\n".join(m3u_lines))
+
+    log(f"✅ 已生成最新 {OUTPUT_FILE} ({datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')})")
 
 if __name__ == "__main__":
-    generate_m3u()
+    main()
