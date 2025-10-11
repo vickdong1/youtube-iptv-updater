@@ -1,219 +1,125 @@
 #!/usr/bin/env python3
 # generate_m3u.py
-# 自动刷新 cookies（优先用 yt-dlp 从浏览器提取，回退用 browser-cookie3 导出 Netscape 格式）
-# 然后使用最新 cookies 去获取每个 YouTube 直播的 m3u8 地址并生成 youtube_live.m3u
+# 自动刷新 YouTube cookies 并生成 IPTV 播放列表
+# 适配新版 yt-dlp (>=2024.10)，优先使用 --write-cookies
 
-import subprocess
-import datetime
-import time
-import os
-import sys
+import subprocess, os, sys, time, datetime, shutil
 
-# 如果需要用 browser_cookie3 回退方案，需要安装：
-# pip install yt-dlp browser-cookie3
-try:
-    import browser_cookie3
-except Exception:
-    browser_cookie3 = None
-
+COOKIES_FILE = "cookies.txt"
 CHANNELS_FILE = "channels.txt"
 OUTPUT_FILE = "youtube_live.m3u"
-COOKIES_FILE = "cookies.txt"   # 导出后的 Netscape cookies 保存路径
-YT_DLP = "yt-dlp"              # 可改为 /usr/bin/yt-dlp 的绝对路径
-BROWSER_CHOICE = "chrome"      # 可选: chrome, edge, firefox
+BROWSER = "chrome"
+YT_DLP = shutil.which("yt-dlp") or "yt-dlp"
 
-# 日志函数
 def log(msg):
-    ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{ts}] {msg}", flush=True)
+    print(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}", flush=True)
 
-# 方案A：优先尝试用 yt-dlp 从本地浏览器提取 cookies（更稳且格式正确）
-def refresh_cookies_with_ytdlp(browser=BROWSER_CHOICE, out_file=COOKIES_FILE):
-    """
-    使用 yt-dlp --cookies-from-browser <browser> --dump-cookies cookies.txt
-    返回 True/False
-    """
-    log(f"尝试用 yt-dlp 从本地浏览器({browser})提取 cookies ...")
-    # 使用 --dump-cookies 兼容较旧 yt-dlp；新的版本也支持 --write-cookies
-    cmd = [YT_DLP, "--cookies-from-browser", browser, "--dump-cookies", out_file, "--skip-download", "https://www.youtube.com"]
+def get_ytdlp_version():
+    try:
+        out = subprocess.check_output([YT_DLP, "--version"], text=True).strip()
+        return out
+    except:
+        return "unknown"
+
+def refresh_cookies():
+    """自动从浏览器提取 cookie"""
+    log("🍪 正在从浏览器提取 YouTube 登录 cookie ...")
+    version = get_ytdlp_version()
+    log(f"yt-dlp 版本: {version}")
+
+    # 优先使用新版参数
+    cmd = [YT_DLP, "--cookies-from-browser", BROWSER, "--write-cookies", COOKIES_FILE,
+           "--skip-download", "https://www.youtube.com"]
+
+    # 如果 --write-cookies 不支持，就改用 --dump-cookies
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        if proc.returncode == 0:
-            if os.path.exists(out_file) and os.path.getsize(out_file) > 0:
-                log(f"✅ yt-dlp 已导出 cookies 到 {out_file}")
-                return True
-            else:
-                log("⚠️ yt-dlp 导出成功但 cookies 文件为空")
-                return False
-        else:
-            log(f"⚠️ yt-dlp 提取 cookies 失败：{proc.stderr.strip().splitlines()[-1] if proc.stderr else proc.stdout}")
-            return False
+        if "no such option" in proc.stderr.lower():
+            cmd = [YT_DLP, "--cookies-from-browser", BROWSER, "--dump-cookies", COOKIES_FILE,
+                   "--skip-download", "https://www.youtube.com"]
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
     except FileNotFoundError:
-        log(f"❌ 未找到 yt-dlp 可执行文件（{YT_DLP}），请先安装 yt-dlp")
+        log("❌ 未找到 yt-dlp，请先运行 pip install yt-dlp")
         return False
     except Exception as e:
-        log(f"❌ 调用 yt-dlp 提取 cookies 出错：{e}")
+        log(f"❌ 提取 cookie 出错: {e}")
         return False
 
-# 方案B：回退用 browser_cookie3 读取本地浏览器 cookie 并写成 Netscape 格式
-def write_netscape_cookies_from_browser(out_file=COOKIES_FILE, domain_filter=".youtube.com"):
-    """
-    使用 browser_cookie3 从本地浏览器读取 cookies，写成 Netscape 文件格式
-    需要 pip install browser-cookie3
-    返回 True/False
-    """
-    if browser_cookie3 is None:
-        log("⚠️ browser_cookie3 未安装，无法回退导出。请运行: pip install browser-cookie3")
+    if os.path.exists(COOKIES_FILE) and os.path.getsize(COOKIES_FILE) > 0:
+        log(f"✅ 成功导出 cookies.txt ({os.path.getsize(COOKIES_FILE)} 字节)")
+        return True
+    else:
+        log(f"⚠️ 提取 cookie 失败：{proc.stderr.strip() or proc.stdout.strip()}")
         return False
 
-    log("尝试用 browser_cookie3 回退导出 cookies（Netscape 格式）...")
-    try:
-        # 尝试从多个浏览器抓取（chrome -> edge -> firefox）
-        cj = None
-        try:
-            cj = browser_cookie3.chrome()
-        except Exception:
-            try:
-                cj = browser_cookie3.edge()
-            except Exception:
-                try:
-                    cj = browser_cookie3.firefox()
-                except Exception:
-                    cj = None
-
-        if cj is None:
-            log("⚠️ browser_cookie3 未能从任何浏览器读取 cookie（可能没有浏览器或未登录）")
-            return False
-
-        # 写成 Netscape cookie 文件格式
-        lines = []
-        header = (
-            "# Netscape HTTP Cookie File\n"
-            "# This file was generated by generate_m3u.py (browser_cookie3)\n"
-            "# https://curl.haxx.se/docs/http-cookies.html\n"
-        )
-        lines.append(header)
-        # cj is a CookieJar; iterate cookies
-        count = 0
-        for cookie in cj:
-            # 过滤域名以减小文件大小（只保留 youtube 相关）
-            domain = cookie.domain
-            if domain_filter and domain_filter not in domain:
-                continue
-            # Netscape format: domain\tflag\tpath\tsecure\texpiration\tname\tvalue
-            flag = "TRUE" if domain.startswith(".") else "FALSE"
-            path = cookie.path or "/"
-            secure = "TRUE" if cookie.secure else "FALSE"
-            expires = str(int(cookie.expires)) if getattr(cookie, "expires", None) else "0"
-            name = cookie.name
-            value = cookie.value
-            line = "\t".join([domain, flag, path, secure, expires, name, value])
-            lines.append(line)
-            count += 1
-
-        if count == 0:
-            log("⚠️ 从浏览器读取到的 cookies 中没有包含 .youtube.com 域的 cookie，可能未登录 YouTube")
-            return False
-
-        with open(out_file, "w", encoding="utf-8") as f:
-            f.write("\n".join(lines))
-        log(f"✅ 已写入 {count} 条 Youtube cookies 到 {out_file}")
-        return True
-    except Exception as e:
-        log(f"❌ 写入 Netscape cookies 出错：{e}")
-        return False
-
-# 高级函数：刷新 cookies（先 yt-dlp -> 回退 browser_cookie3 -> 失败则提示手动导出）
-def refresh_cookies_auto():
-    # 如果已有 cookies 且不太旧，可直接使用；这里简单策略：总是尝试刷新
-    # 优先 yt-dlp 提取
-    ok = refresh_cookies_with_ytdlp()
-    if ok:
-        return True
-    # 回退尝试 browser_cookie3
-    ok2 = write_netscape_cookies_from_browser()
-    if ok2:
-        return True
-    # 最后提示用户手动导出
-    log("❗ 无法自动导出 cookies。请手动从浏览器导出 Netscape 格式的 cookies.txt（仅包含 youtube.com 域），或在此环境安装浏览器并登录。")
-    return False
-
-# 用 yt-dlp + cookies 获取直播流地址（-g 获取播放 URL）
-def get_stream_url(video_url, cookies_file=COOKIES_FILE, timeout=60):
-    """
-    返回抓到的第一个 URL（通常是 m3u8），或 None
-    """
-    try:
-        cmd = [YT_DLP, "-g", "--cookies", cookies_file, video_url]
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-        if proc.returncode == 0 and proc.stdout.strip():
-            # yt-dlp -g 可能返回多行（audio/video），优先 m3u8 或 manifest
-            lines = [ln.strip() for ln in proc.stdout.splitlines() if ln.strip()]
-            # 优先选含 m3u8 或 manifest 的
-            for ln in lines:
-                if ".m3u8" in ln or "manifest.googlevideo.com" in ln:
-                    return ln
-            # 否则返回第一行
-            return lines[0] if lines else None
-        else:
-            log(f"yt-dlp -g 失败: {video_url} -> {proc.stderr.strip().splitlines()[-1] if proc.stderr else 'no stderr'}")
-            return None
-    except Exception as e:
-        log(f"获取流地址异常: {e}")
-        return None
-
-# 读取 channels.txt
-def read_channels(file=CHANNELS_FILE):
-    if not os.path.exists(file):
-        log(f"❌ 找不到 {file} ，请创建并填入你的频道，每行格式：<YouTube链接>   # 频道名称")
+def read_channels():
+    if not os.path.exists(CHANNELS_FILE):
+        log(f"❌ 未找到 {CHANNELS_FILE}")
         sys.exit(1)
     channels = []
-    with open(file, "r", encoding="utf-8") as f:
-        for raw in f:
-            line = raw.strip()
-            if not line or line.startswith("#"):
-                continue
-            if "#" in line:
-                url, name = line.split("#", 1)
-                channels.append((url.strip(), name.strip()))
-            else:
-                channels.append((line, line))
+    for line in open(CHANNELS_FILE, "r", encoding="utf-8"):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "#" in line:
+            url, name = line.split("#", 1)
+            channels.append((url.strip(), name.strip()))
+        else:
+            channels.append((line, line))
     return channels
 
-# 生成 m3u
-def generate_m3u(channels, out_file=OUTPUT_FILE):
-    m3u_lines = ["#EXTM3U"]
-    got = 0
+def get_stream(url):
+    """使用 cookie 获取 m3u8 链接"""
+    try:
+        cmd = [YT_DLP, "-g", "--cookies", COOKIES_FILE, url]
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        if proc.returncode == 0 and proc.stdout.strip():
+            for line in proc.stdout.splitlines():
+                if "m3u8" in line or "manifest.googlevideo.com" in line:
+                    return line.strip()
+            return proc.stdout.splitlines()[0].strip()
+        else:
+            err = proc.stderr.strip().splitlines()[-1] if proc.stderr else "未知错误"
+            log(f"yt-dlp 抓取失败: {err}")
+            return None
+    except Exception as e:
+        log(f"⚠️ 抓流异常: {e}")
+        return None
+
+def generate_m3u(channels):
+    lines = ["#EXTM3U"]
+    success = 0
     for url, name in channels:
         log(f"▶ 正在获取：{name} ({url})")
-        stream = get_stream_url(url)
+        stream = get_stream(url)
         if stream:
-            m3u_lines.append(f'#EXTINF:-1 group-title="YouTube",{name}')
-            m3u_lines.append(stream)
-            log(f"✅ {name} 获取成功")
-            got += 1
+            lines.append(f'#EXTINF:-1 group-title="YouTube",{name}')
+            lines.append(stream)
+            log(f"✅ {name} 成功")
+            success += 1
         else:
-            log(f"❌ {name} 获取失败（可能未直播或需要更高权限）")
-        # 小延迟，降低请求频率
+            log(f"❌ {name} 失败")
         time.sleep(1)
 
-    with open(out_file, "w", encoding="utf-8") as f:
-        f.write("\n".join(m3u_lines))
-    log(f"生成完成：{out_file}（{got}/{len(channels)} 成功）")
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+    log(f"📺 已生成 {OUTPUT_FILE} ({success}/{len(channels)} 成功)")
 
-# 主流程
 def main():
-    log("========== 开始运行 generate_m3u.py ==========")
-    # 尝试刷新 cookies（可根据需要注释掉，不想每次刷新则去掉此行）
-    refreshed = refresh_cookies_auto()
-    if not refreshed:
-        log("⚠️ cookies 未能自动刷新，仍会尝试使用现有 cookies.txt（如果存在）去抓流。")
+    log("========== 开始运行 generate_m3u ==========")
+    ok = refresh_cookies()
+    if not ok:
+        log("⚠️ cookie 提取失败，将尝试使用现有 cookies.txt（如果有）")
     else:
-        log("✅ cookies 已准备好，开始抓流流程。")
+        log("✅ cookie 已刷新")
+
+    if not os.path.exists(COOKIES_FILE):
+        log("❌ 没有有效 cookie，YouTube 将拒绝请求。请先登录浏览器再运行脚本。")
+        sys.exit(1)
 
     channels = read_channels()
     generate_m3u(channels)
-    log("========== 运行结束 ==========")
+    log("✅ 所有频道处理完成")
 
 if __name__ == "__main__":
     main()
